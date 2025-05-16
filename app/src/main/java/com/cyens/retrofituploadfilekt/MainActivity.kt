@@ -129,14 +129,6 @@ fun UploadUI(modifier: Modifier = Modifier,
             val requestBody = file.asRequestBody("image/*".toMediaTypeOrNull())
             val part = MultipartBody.Part.createFormData("file", file.name, requestBody)
 
-            //val retrofitInstance = UploadService.instance
-
-            /*val retrofit = Retrofit.Builder().baseUrl("http://10.0.2.2:8080/api/files/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .client(httpClient.build())
-                .build()
-                .create(UploadService::class.java)*/
-
             CoroutineScope(Dispatchers.IO).launch {
                 val response = FileRepository().uploadFile(part)
                 Log.e("ManinActivity", "Upload Response: $response")
@@ -146,6 +138,22 @@ fun UploadUI(modifier: Modifier = Modifier,
             }
 
         }) { Text("Upload") }
+
+        Spacer(modifier = Modifier.height(80.dp))
+
+        Button(onClick = {
+            val fileName = "Adroit6G App.pdf" // File name to download
+            val destinationPath = File(context.getExternalFilesDir(null), fileName)
+
+            CoroutineScope(Dispatchers.IO).launch {
+               val response = viewModel.downloadFile(fileName, destinationPath.toString())
+               Log.e("MainActivity", "Download Response: $response")
+               withContext(Dispatchers.Main){
+                   Toast.makeText(context, "Download Response: ${response}", Toast.LENGTH_SHORT).show()
+               }
+            }
+
+        }) { Text("Download") }
     }
 }
 
