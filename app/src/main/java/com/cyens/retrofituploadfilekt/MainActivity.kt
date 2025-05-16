@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -35,18 +34,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.cyens.retrofituploadfilekt.data.UploadService
+import com.cyens.retrofituploadfilekt.repositories.FileRepository
 import com.cyens.retrofituploadfilekt.ui.theme.RetrofitUploadFileKtTheme
+import com.cyens.retrofituploadfilekt.viewmodel.FileViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.create
 import java.io.File
 import java.io.FileOutputStream
 
@@ -70,7 +70,9 @@ class MainActivity : ComponentActivity() {
                         ) { uri: Uri? ->
                             imageUri = uri
                         }
-                        UploadUI(modifier = Modifier, launcher, imageUri);
+
+                        val viewModel = viewModel<FileViewModel>()
+                        UploadUI(modifier = Modifier, launcher, imageUri, viewModel);
                     }
                 }
             }
@@ -81,7 +83,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun UploadUI(modifier: Modifier = Modifier,
              contracts: ActivityResultLauncher<String>,
-             imageUrl: Uri?) {
+             imageUrl: Uri?,
+             viewModel: FileViewModel) {
     val context = LocalContext.current
 
     //shared click behaviour
@@ -126,15 +129,20 @@ fun UploadUI(modifier: Modifier = Modifier,
             val requestBody = file.asRequestBody("image/*".toMediaTypeOrNull())
             val part = MultipartBody.Part.createFormData("file", file.name, requestBody)
 
-            val retrofit = Retrofit.Builder().baseUrl("http://10.0.2.2:8080/api/files/")
+            //val retrofitInstance = UploadService.instance
+
+            /*val retrofit = Retrofit.Builder().baseUrl("http://10.0.2.2:8080/api/files/")
                 .addConverterFactory(GsonConverterFactory.create())
+                .client(httpClient.build())
                 .build()
-                .create(UploadService::class.java)
+                .create(UploadService::class.java)*/
 
             CoroutineScope(Dispatchers.IO).launch {
-                val response = retrofit.uploadFile(part)
-                Log.e("ManinActivity", "Upload Response: ${response}")
-            //Toast.makeText(context, "File Upload Status: $response.", Toast.LENGTH_SHORT).show()
+                val response = FileRepository().uploadFile(part)
+                Log.e("ManinActivity", "Upload Response: $response")
+                withContext(Dispatchers.Main){
+                    Toast.makeText(context, "Response: ${response.message}", Toast.LENGTH_SHORT).show()
+                }
             }
 
         }) { Text("Upload") }
